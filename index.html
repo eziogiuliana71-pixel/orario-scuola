@@ -1,0 +1,2324 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#0f766e">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="color-scheme" content="light">
+    <meta name="format-detection" content="telephone=no">
+    <title>Orario Sostegno Pro</title>
+    <style>
+        /* =========================================================
+           1. RESET & VARIABILI DESIGN SYSTEM (100% INLINE)
+           ========================================================= */
+        :root {
+            --bg-app: #f1f5f9;
+            --bg-surface: #ffffff;
+            --bg-muted: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --border-medium: #cbd5e1;
+
+            --teal-600: #0d9488;
+            --teal-700: #0f766e;
+            --teal-50: #f0fdfa;
+            --teal-200: #99f6e4;
+
+            --indigo-600: #4f46e5;
+            --indigo-700: #4338ca;
+            --indigo-50: #eef2ff;
+            --indigo-200: #c7d2fe;
+
+            --amber-500: #f59e0b;
+            --amber-600: #d97706;
+            --amber-50: #fffbeb;
+            --amber-200: #fde68a;
+
+            --purple-600: #9333ea;
+            --purple-50: #faf5ff;
+            --purple-200: #e9d5ff;
+
+            --rose-600: #e11d48;
+            --rose-50: #fff1f2;
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+            --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.1);
+            --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.18);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+            overscroll-behavior: none; /* niente pull-to-refresh né "indietro" accidentale con lo swipe */
+        }
+
+        html.modal-open {
+            overflow: hidden;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        body {
+            /* "clip" e non "hidden": hidden rompe position: sticky */
+            overflow-x: clip;
+            padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding-bottom: 32px;
+            }
+        }
+
+        button, input, select, textarea {
+            font-family: inherit;
+            font-size: 16px;
+        }
+
+        button, label, [onclick] {
+            touch-action: manipulation; /* niente zoom con doppio tap, nessun ritardo */
+            -webkit-touch-callout: none;
+        }
+
+        button, .m-slot-row, .w-cell-card, .tool-btn, .type-radio-card, .fab-spotlight {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 0;
+        }
+
+        /* Feedback al tocco (l'highlight di sistema è disattivato) */
+        .m-slot-row:active, .w-cell-card:active, .w-cell-empty:active,
+        .type-radio-card:active, .day-tab-btn:active, .day-nav-btn:active,
+        .btn-action:active, .view-switch-btn:active, .menu-btn:active {
+            box-shadow: inset 0 0 0 999px rgba(15, 23, 42, 0.07);
+        }
+
+        :focus-visible {
+            outline: 3px solid var(--teal-600);
+            outline-offset: 2px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* =========================================================
+           2. HEADER & BARRA STRUMENTI
+           ========================================================= */
+        .app-header {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-light);
+            z-index: 30;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Su telefono l'intestazione scorre via: lo spazio serve all'orario */
+        @media (min-width: 768px) and (min-height: 600px) {
+            .app-header {
+                position: sticky;
+                top: 0;
+            }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1240px;
+            margin: 0 auto;
+            padding-left: max(12px, env(safe-area-inset-left, 0px));
+            padding-right: max(12px, env(safe-area-inset-right, 0px));
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                padding-left: max(20px, env(safe-area-inset-left, 0px));
+                padding-right: max(20px, env(safe-area-inset-right, 0px));
+            }
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 10px 0 8px;
+        }
+
+        .brand-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--teal-700);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .brand-titles {
+            min-width: 0;
+        }
+
+        .brand-titles h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .brand-titles p {
+            margin: 1px 0 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Pulsante Principale Evidenzia Sostegno */
+        .btn-spotlight {
+            display: none; /* su telefono c'è il pulsante flottante in basso */
+            align-items: center;
+            gap: 6px;
+            min-height: 44px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border-medium);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+
+        @media (min-width: 768px) {
+            .btn-spotlight {
+                display: inline-flex;
+            }
+        }
+
+        .menu-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            background: var(--bg-muted);
+            color: var(--text-primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .menu-btn[aria-expanded="true"] {
+            background: var(--teal-50);
+            border-color: var(--teal-200);
+            color: var(--teal-700);
+        }
+
+        @media (min-width: 768px) {
+            .menu-btn {
+                display: none;
+            }
+        }
+
+        .btn-spotlight.active {
+            background: linear-gradient(135deg, #0f766e, #0891b2);
+            color: #ffffff;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+        }
+
+        .status-tag {
+            padding: 2px 5px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 800;
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .btn-spotlight.active .status-tag {
+            background: #f59e0b;
+            color: #0f172a;
+        }
+
+        /* Barra Azioni Secondarie: su telefono è un menu a griglia (pulsante ⋮) */
+        .toolbar-scroll {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 0 0 12px;
+        }
+
+        .toolbar-scroll.open {
+            display: grid;
+        }
+
+        @media (min-width: 768px) {
+            .toolbar-scroll,
+            .toolbar-scroll.open {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                overflow-x: auto;
+                padding: 0 0 10px;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        .toolbar-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tool-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            min-height: 48px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: var(--bg-muted);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+            .tool-btn {
+                min-height: 40px;
+                font-size: 13px;
+            }
+        }
+
+        .tool-btn:active {
+            background: #e2e8f0;
+        }
+
+        .tool-btn.amber {
+            background: var(--amber-50);
+            border-color: var(--amber-200);
+            color: #92400e;
+        }
+
+        .tool-btn.dark {
+            background: #1e293b;
+            border-color: #1e293b;
+            color: #ffffff;
+        }
+
+        /* =========================================================
+           3. RIEPILOGO MONTE ORE PEI & STATISTICHE
+           ========================================================= */
+        .main-wrap {
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Su telefono l'orario viene per primo, il riepilogo ore subito dopo */
+        @media (max-width: 767.98px) {
+            .view-bar { order: 1; }
+            #mobile-day-view { order: 2; }
+            #weekly-table-view { order: 2; }
+            .pei-summary-bar { order: 3; }
+            .main-wrap > footer { order: 4; }
+        }
+
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .pei-summary-bar {
+            padding: 12px;
+        }
+
+        .pei-top-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .kpi-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kpi-pill {
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            background: var(--bg-muted);
+            border: 1px solid var(--border-light);
+        }
+
+        .kpi-pill.teal {
+            background: var(--teal-50);
+            border-color: var(--teal-200);
+            color: var(--teal-700);
+        }
+
+        .kpi-pill.indigo {
+            background: var(--indigo-50);
+            border-color: var(--indigo-200);
+            color: var(--indigo-700);
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 7px;
+            background: #e2e8f0;
+            border-radius: 99px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--teal-600);
+            border-radius: 99px;
+            transition: width 0.25s ease;
+        }
+
+        .students-chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .student-pei-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 99px;
+            font-size: 12px;
+            max-width: 100%;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+
+        .dot-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        /* =========================================================
+           4. COMMUTATORE VISTA MOBILE & TAB GIORNI LUN-SAB
+           ========================================================= */
+        .view-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 12px;
+        }
+
+        @media (min-width: 768px) {
+            .view-bar {
+                display: none;
+            }
+        }
+
+        .view-switch {
+            display: inline-flex;
+            background: #e2e8f0;
+            padding: 3px;
+            border-radius: 9px;
+        }
+
+        .view-switch-btn {
+            min-height: 42px;
+            padding: 4px 16px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .view-switch-btn.active {
+            background: #ffffff;
+            color: var(--teal-700);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Tab Giorni */
+        .mobile-day-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (min-width: 768px) {
+            .mobile-day-wrapper {
+                display: none !important;
+            }
+        }
+
+        .day-tabs-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            padding: 8px;
+        }
+
+        .day-tabs-grid.has-sat {
+            grid-template-columns: repeat(6, 1fr);
+        }
+
+        .day-tab-btn {
+            min-height: 54px;
+            padding: 5px 2px;
+            border-radius: 9px;
+            background: var(--bg-muted);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        .day-tab-btn.active {
+            background: var(--teal-700);
+            border-color: var(--teal-700);
+            color: #ffffff;
+        }
+
+        .day-tab-label {
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .day-tab-hours {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 99px;
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .day-tab-btn.active .day-tab-hours {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        .day-card-header {
+            padding: 10px 12px;
+            background: var(--bg-muted);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .day-tabs-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            box-shadow: var(--shadow-md);
+        }
+
+        .day-nav-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 9px;
+            background: #ffffff;
+            border: 1px solid var(--border-medium);
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .day-slots-container {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .m-slot-row {
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 12px;
+            border: 2px solid var(--border-light);
+            background: #ffffff;
+            cursor: pointer;
+            transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .m-slot-row.is-empty {
+            border: 1.5px dashed var(--border-medium);
+            background: var(--bg-muted);
+            align-items: center;
+            min-height: 58px;
+        }
+
+        .m-slot-time {
+            width: 62px;
+            flex-shrink: 0;
+            border-right: 1px solid rgba(148, 163, 184, 0.35);
+            padding-right: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .m-slot-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .m-slot-label { font-size: 13px; font-weight: 800; }
+        .m-slot-start { font-size: 12px; font-weight: 700; }
+        .m-slot-end { font-size: 11px; color: var(--text-muted); }
+        .m-slot-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+        .m-slot-subject { font-size: 16px; font-weight: 800; line-height: 1.25; }
+        .m-slot-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; }
+        .m-slot-meta { font-size: 12px; color: var(--text-secondary); }
+        .m-empty-text { flex: 1; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-muted); }
+        .m-empty-plus { color: var(--teal-700); font-size: 24px; font-weight: 700; line-height: 1; }
+
+        /* Ora in corso */
+        .is-now { box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.65); }
+        .now-badge {
+            margin-top: 4px;
+            padding: 2px 6px;
+            border-radius: 99px;
+            background: #f59e0b;
+            color: #0f172a;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+        }
+
+        .type-tag {
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .class-chip {
+            background: #ffffff;
+            border: 1px solid var(--border-medium);
+            padding: 1px 8px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .chip-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* =========================================================
+           5. VISTA SETTIMANALE TABELLARE (COLONNA ORARI FISSA)
+           ========================================================= */
+        .week-table-wrapper {
+            display: none;
+            overflow: hidden;
+        }
+
+        .week-table-wrapper.show-on-mobile {
+            display: block;
+        }
+
+        @media (min-width: 768px) {
+            .week-table-wrapper {
+                display: block !important;
+            }
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .schedule-table {
+            width: 100%;
+            min-width: 640px;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .schedule-table th {
+            background: var(--bg-muted);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 10px 6px;
+            border-bottom: 1px solid var(--border-light);
+            border-right: 1px solid var(--border-light);
+            text-align: center;
+        }
+
+        .schedule-table th.sticky-col,
+        .schedule-table td.sticky-col {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            width: 72px;
+            background: var(--bg-muted);
+            border-right: 1px solid var(--border-medium);
+            box-shadow: 2px 0 5px rgba(15, 23, 42, 0.06);
+        }
+
+        .schedule-table td {
+            padding: 5px;
+            border-bottom: 1px solid var(--border-light);
+            border-right: 1px solid var(--border-light);
+            vertical-align: top;
+            height: 104px;
+        }
+
+        .w-cell-empty {
+            width: 100%;
+            height: 100%;
+            min-height: 86px;
+            border-radius: 9px;
+            border: 1.5px dashed var(--border-medium);
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .w-time-cell { text-align: center; vertical-align: middle !important; padding: 4px 2px !important; }
+        .w-time-label { font-size: 13px; font-weight: 800; margin-bottom: 2px; }
+        .w-time-range { font-size: 11px; color: var(--text-muted); }
+        .w-top { display: flex; justify-content: space-between; align-items: center; gap: 3px; }
+        .w-tag {
+            padding: 1px 4px; border-radius: 4px; font-size: 10px; font-weight: 800;
+            text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+        }
+        .w-class {
+            background: #ffffff; border: 1px solid var(--border-medium); padding: 0 4px;
+            border-radius: 4px; font-size: 11px; font-weight: 800; flex-shrink: 0;
+        }
+        .w-subject { font-size: 13px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .w-student { padding: 2px 6px; font-size: 11px; margin-top: 2px; }
+        .w-room { font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .w-cell-card {
+            width: 100%;
+            height: 100%;
+            min-height: 86px;
+            border-radius: 9px;
+            padding: 7px;
+            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 3px;
+            cursor: pointer;
+            transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        /* =========================================================
+           6. STILI TIPOLOGIE ORE & MODALITÀ EVIDENZIA SOSTEGNO
+           ========================================================= */
+        .slot-SOSTEGNO_CLASSE {
+            background: #eef2ff;
+            border-color: #818cf8;
+        }
+        .tag-SOSTEGNO_CLASSE {
+            background: #4f46e5;
+            color: #ffffff;
+        }
+
+        .slot-SOSTEGNO_IND {
+            background: #f0fdfa;
+            border-color: #2dd4bf;
+        }
+        .tag-SOSTEGNO_IND {
+            background: #0f766e;
+            color: #ffffff;
+        }
+
+        .slot-DISPOSIZIONE {
+            background: #fffbeb;
+            border-color: #fcd34d;
+        }
+        .tag-DISPOSIZIONE {
+            background: #d97706;
+            color: #ffffff;
+        }
+
+        .slot-PROGRAMMAZIONE {
+            background: #faf5ff;
+            border-color: #d8b4fe;
+        }
+        .tag-PROGRAMMAZIONE {
+            background: #9333ea;
+            color: #ffffff;
+        }
+
+        .slot-ORA_BUCA {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        .tag-ORA_BUCA {
+            background: #64748b;
+            color: #ffffff;
+        }
+
+        /* Effetto Visivo Modalità Evidenzia Ore di Sostegno */
+        body.highlight-sostegno .is-non-sostegno {
+            opacity: 0.28 !important;
+            filter: grayscale(100%);
+            -webkit-filter: grayscale(100%);
+            transform: scale(0.98);
+        }
+
+        body.highlight-sostegno .is-empty-slot {
+            opacity: 0.35 !important;
+        }
+
+        body.highlight-sostegno .is-sostegno {
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 0 2px #06b6d4, 0 8px 18px rgba(13, 148, 136, 0.28) !important;
+            transform: scale(1.01);
+            z-index: 5;
+        }
+
+        /* =========================================================
+           7. PULSANTE FLOTTANTE MOBILE (BOTTOM RIGHT)
+           ========================================================= */
+        .fab-spotlight {
+            position: fixed;
+            right: max(14px, env(safe-area-inset-right, 0px));
+            bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+            z-index: 35;
+            min-height: 52px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.35);
+            border: 2px solid #334155;
+        }
+
+        .fab-spotlight.active {
+            background: linear-gradient(135deg, #0f766e, #0891b2);
+            border-color: #f59e0b;
+            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.45);
+        }
+
+        @media (min-width: 768px) {
+            .fab-spotlight {
+                display: none;
+            }
+        }
+
+        /* =========================================================
+           8. MODALI TOUCH-FRIENDLY
+           ========================================================= */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            z-index: 50;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        @media (min-width: 640px) {
+            .modal-overlay {
+                align-items: center;
+                padding: 16px;
+            }
+        }
+
+        .modal-box {
+            background: #ffffff;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            max-height: 92dvh;
+            border-radius: 20px 20px 0 0;
+            animation: sheet-up 0.18s ease-out;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        @media (min-width: 640px) {
+            .modal-box {
+                border-radius: 16px;
+            }
+        }
+
+        @keyframes sheet-up {
+            from { transform: translateY(24px); opacity: 0; }
+            to { transform: none; opacity: 1; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .modal-box { animation: none; }
+            * { transition: none !important; }
+        }
+
+        .modal-head {
+            padding: 12px 16px;
+            background: var(--bg-muted);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-content {
+            padding: 14px 16px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-foot {
+            padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+            background: var(--bg-muted);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .label-sm {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .input-ctrl {
+            width: 100%;
+            min-height: 48px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-medium);
+            background: #ffffff;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .type-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .type-radio-card {
+            min-height: 50px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border-light);
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.2;
+            cursor: pointer;
+        }
+
+        .type-radio-card.selected {
+            border-color: var(--teal-700);
+            background: var(--teal-50);
+            color: var(--teal-700);
+        }
+
+        .color-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .color-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .color-circle.selected {
+            outline: 2.5px solid #0f172a;
+            outline-offset: 2px;
+        }
+
+        .btn-action {
+            min-height: 48px;
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .btn-save {
+            background: var(--teal-700);
+            color: #ffffff;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+            color: var(--text-primary);
+        }
+
+        .btn-del {
+            background: var(--rose-50);
+            color: var(--rose-600);
+        }
+
+        .btn-danger {
+            background: var(--rose-600);
+            color: #ffffff;
+        }
+
+        /* Barra Salva/Annulla sempre visibile anche con la tastiera aperta
+           (-14px = padding inferiore del contenitore che scorre) */
+        .sticky-foot {
+            position: sticky;
+            bottom: -14px;
+            z-index: 2;
+        }
+
+        /* Toast */
+        .toast-banner {
+            position: fixed;
+            left: 16px;
+            right: 16px;
+            bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+            z-index: 60;
+            pointer-events: none;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* =========================================================
+           9. STAMPA / PDF
+           ========================================================= */
+        .print-only-header {
+            display: none;
+        }
+
+        @media print {
+            @page {
+                size: landscape;
+                margin: 1cm;
+            }
+            body {
+                background: #ffffff !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only-header {
+                display: flex !important;
+                justify-content: space-between;
+                align-items: flex-end;
+                border-bottom: 2px solid #0f172a;
+                padding-bottom: 8px;
+                margin-bottom: 12px;
+            }
+            .week-table-wrapper {
+                display: block !important;
+                border: 1px solid #94a3b8 !important;
+            }
+            .table-responsive {
+                overflow: visible !important;
+            }
+            .schedule-table {
+                min-width: 100% !important;
+            }
+            .schedule-table th.sticky-col,
+            .schedule-table td.sticky-col {
+                position: static !important;
+                box-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast-msg" class="toast-banner hidden no-print"></div>
+
+    <!-- Intestazione solo per stampa -->
+    <div class="container print-only-header">
+        <div>
+            <h2 id="print-doc-title" style="margin:0; font-size:17px;">Orario Sostegno Pro</h2>
+            <p style="margin:2px 0 0; font-size:11px; color:#475569;">Prospetto settimanale cattedra di sostegno e monte ore PEI</p>
+        </div>
+        <div id="print-doc-stats" style="font-size:11px; font-weight:700; text-align:right;"></div>
+    </div>
+
+    <!-- HEADER FISSO -->
+    <header class="app-header no-print">
+        <div class="container">
+            <div class="header-top">
+                <div class="brand-box">
+                    <div class="brand-logo">SP</div>
+                    <div class="brand-titles">
+                        <h1>Orario Sostegno Pro</h1>
+                        <p id="subtitle-teacher">Docente di Sostegno • Cattedra 18h</p>
+                    </div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" id="top-spotlight-btn" class="btn-spotlight" onclick="toggleHighlightMode()">
+                        <span>Evidenzia Sostegno</span>
+                        <span id="top-spotlight-tag" class="status-tag">OFF</span>
+                    </button>
+                    <button type="button" id="menu-btn" class="menu-btn" aria-label="Menu strumenti" aria-expanded="false" aria-controls="toolbar" onclick="toggleToolbar()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="toolbar" class="toolbar-scroll">
+                <button type="button" class="tool-btn" onclick="openSettings()">Impostazioni</button>
+                <button type="button" class="tool-btn amber" onclick="confirmSample()">Esempio 18h</button>
+                <button type="button" class="tool-btn" onclick="exportBackup()">Esporta JSON</button>
+                <label class="tool-btn" style="cursor:pointer;">
+                    Importa JSON
+                    <input type="file" id="json-file-input" accept=".json,application/json" class="hidden" onchange="importBackup(event)">
+                </label>
+                <button type="button" class="tool-btn" onclick="confirmClear()">Azzera Tutto</button>
+                <button type="button" class="tool-btn dark" onclick="window.print()">Stampa / PDF</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENUTO PRINCIPALE -->
+    <main class="container main-wrap">
+
+        <!-- RIEPILOGO MONTE ORE PEI -->
+        <section class="card pei-summary-bar no-print">
+            <div class="pei-top-row">
+                <div class="kpi-group">
+                    <span class="kpi-pill">Cattedra: <strong id="kpi-total">0</strong>/<strong id="kpi-target">18</strong>h</span>
+                    <span class="kpi-pill teal">Sostegno: <strong id="kpi-sostegno">0</strong>h (<span id="kpi-classe">0</span>h cl. / <span id="kpi-ind">0</span>h lab.)</span>
+                    <span class="kpi-pill indigo">Altre att.: <strong id="kpi-altre">0</strong>h</span>
+                </div>
+                <span id="kpi-status-text" style="font-size:12px; font-weight:700; color:var(--text-muted);"></span>
+            </div>
+
+            <div class="progress-bar-bg">
+                <div id="kpi-progress" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+
+            <div id="students-pei-summary" class="students-chip-list">
+                <span style="font-size:12px; color:var(--text-muted);">Nessun alunno seguito inserito</span>
+            </div>
+        </section>
+
+        <!-- COMMUTATORE VISTA MOBILE (GIORNO / SETTIMANA) -->
+        <section class="card view-bar no-print">
+            <span style="font-size:12px; font-weight:700; color:var(--text-secondary);">Modalità vista:</span>
+            <div class="view-switch">
+                <button type="button" id="btn-view-day" class="view-switch-btn active" onclick="switchMobileView('DAY')">Giorno</button>
+                <button type="button" id="btn-view-week" class="view-switch-btn" onclick="switchMobileView('WEEK')">Settimana</button>
+            </div>
+        </section>
+
+        <!-- VISTA GIORNALIERA MOBILE (GIÀ PRESENTE NEL DOM STATICO) -->
+        <section id="mobile-day-view" class="mobile-day-wrapper no-print">
+            <div class="card day-tabs-sticky">
+                <div id="day-tabs-bar" class="day-tabs-grid">
+                    <button type="button" class="day-tab-btn active" onclick="selectDay('LUN')"><span class="day-tab-label">Lun</span><span class="day-tab-hours">4h</span></button>
+                    <button type="button" class="day-tab-btn" onclick="selectDay('MAR')"><span class="day-tab-label">Mar</span><span class="day-tab-hours">3h</span></button>
+                    <button type="button" class="day-tab-btn" onclick="selectDay('MER')"><span class="day-tab-label">Mer</span><span class="day-tab-hours">4h</span></button>
+                    <button type="button" class="day-tab-btn" onclick="selectDay('GIO')"><span class="day-tab-label">Gio</span><span class="day-tab-hours">5h</span></button>
+                    <button type="button" class="day-tab-btn" onclick="selectDay('VEN')"><span class="day-tab-label">Ven</span><span class="day-tab-hours">3h</span></button>
+                </div>
+            </div>
+
+            <div class="card" style="overflow:hidden;">
+                <div class="day-card-header">
+                    <button type="button" class="day-nav-btn" onclick="navigateDay(-1)" aria-label="Giorno precedente">&#8249;</button>
+                    <div style="text-align:center;">
+                        <h2 id="current-day-name" style="margin:0; font-size:18px; font-weight:800;">Lunedì</h2>
+                        <p id="current-day-stats" style="margin:2px 0 0; font-size:13px; color:var(--text-muted); font-weight:600;">4h servizio • 4h sostegno</p>
+                    </div>
+                    <button type="button" class="day-nav-btn" onclick="navigateDay(1)" aria-label="Giorno successivo">&#8250;</button>
+                </div>
+
+                <div id="mobile-day-slots" class="day-slots-container">
+                    <!-- Popolato immediatamente al caricamento -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA SETTIMANALE COMPLETA (CON PRIMA COLONNA FISSA) -->
+        <section id="weekly-table-view" class="card week-table-wrapper">
+            <div class="table-responsive">
+                <table class="schedule-table">
+                    <thead>
+                        <tr id="week-table-head">
+                            <th class="sticky-col">Orario</th>
+                            <th>Lunedì</th>
+                            <th>Martedì</th>
+                            <th>Mercoledì</th>
+                            <th>Giovedì</th>
+                            <th>Venerdì</th>
+                        </tr>
+                    </thead>
+                    <tbody id="week-table-body">
+                        <!-- Popolato immediatamente al caricamento -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- LEGENDA -->
+        <footer style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; font-size:12px; color:var(--text-muted); padding:0 2px 8px;">
+            <div style="display:flex; flex-wrap:wrap; gap:6px 12px;">
+                <span><strong>Indaco:</strong> Sostegno Classe</span>
+                <span><strong>Verde Acqua:</strong> Sostegno Ind./Lab</span>
+                <span><strong>Viola:</strong> Prog./GLO</span>
+                <span><strong>Ambra:</strong> Disposizione</span>
+                <span><strong>Grigio:</strong> Ora Buca</span>
+            </div>
+            <span class="no-print">Tocca una fascia oraria per modificarla.</span>
+        </footer>
+    </main>
+
+    <!-- PULSANTE FLOTTANTE MOBILE IN BASSO A DESTRA -->
+    <button type="button" id="fab-spotlight-btn" class="fab-spotlight no-print" onclick="toggleHighlightMode()">
+        <span id="fab-spotlight-label">Evidenzia Sostegno: OFF</span>
+    </button>
+
+    <!-- MODALE MODIFICA / CREAZIONE CELLA ORARIA -->
+    <div id="edit-modal" class="modal-overlay hidden no-print" role="dialog" aria-modal="true" onclick="if(event.target===this) closeEditModal()">
+        <div class="modal-box">
+            <div class="modal-head">
+                <div>
+                    <h3 id="edit-modal-heading" style="margin:0; font-size:15px; font-weight:800;">Modifica Ora</h3>
+                    <p id="edit-modal-subheading" style="margin:2px 0 0; font-size:12px; color:var(--text-muted);"></p>
+                </div>
+                <button type="button" class="btn-action btn-cancel" onclick="closeEditModal()">Chiudi</button>
+            </div>
+
+            <form id="edit-slot-form" class="modal-content" onsubmit="handleSaveSlot(event)">
+                <input type="hidden" id="form-day-id">
+                <input type="hidden" id="form-period-id">
+
+                <div>
+                    <span class="label-sm">Tipologia di Attività</span>
+                    <div class="type-selector-grid" id="type-selector-cards">
+                        <div class="type-radio-card selected" data-type="SOSTEGNO_CLASSE" onclick="chooseSlotType('SOSTEGNO_CLASSE')">
+                            <span class="dot-indicator" style="background:#4f46e5;"></span>
+                            <span>Sostegno Classe</span>
+                        </div>
+                        <div class="type-radio-card" data-type="SOSTEGNO_IND" onclick="chooseSlotType('SOSTEGNO_IND')">
+                            <span class="dot-indicator" style="background:#0f766e;"></span>
+                            <span>Sostegno Ind./Lab</span>
+                        </div>
+                        <div class="type-radio-card" data-type="DISPOSIZIONE" onclick="chooseSlotType('DISPOSIZIONE')">
+                            <span class="dot-indicator" style="background:#d97706;"></span>
+                            <span>Disposizione/<wbr>Suppl.</span>
+                        </div>
+                        <div class="type-radio-card" data-type="PROGRAMMAZIONE" onclick="chooseSlotType('PROGRAMMAZIONE')">
+                            <span class="dot-indicator" style="background:#9333ea;"></span>
+                            <span>Programmazione/<wbr>GLO</span>
+                        </div>
+                        <div class="type-radio-card" data-type="ORA_BUCA" onclick="chooseSlotType('ORA_BUCA')">
+                            <span class="dot-indicator" style="background:#64748b;"></span>
+                            <span>Ora Buca</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap:8px;">
+                    <div>
+                        <label class="label-sm" for="field-subject">Materia / Attività *</label>
+                        <input type="text" id="field-subject" class="input-ctrl" required autocomplete="off" autocapitalize="sentences" enterkeyhint="next" placeholder="es. Matematica, Lab...">
+                    </div>
+                    <div>
+                        <label class="label-sm" for="field-class">Classe</label>
+                        <input type="text" id="field-class" class="input-ctrl" autocomplete="off" enterkeyhint="next" placeholder="es. 2ª B">
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-muted); padding:10px; border-radius:10px; border:1px solid var(--border-light); display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:8px;">
+                        <div>
+                            <label class="label-sm" for="field-student">Alunno (PEI)</label>
+                            <input type="text" id="field-student" class="input-ctrl" list="datalist-students" autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder="es. Marco R." oninput="syncExistingStudentColor()">
+                            <datalist id="datalist-students"></datalist>
+                        </div>
+                        <div>
+                            <label class="label-sm" for="field-room">Aula / Spazio</label>
+                            <input type="text" id="field-room" class="input-ctrl" autocomplete="off" enterkeyhint="next" placeholder="es. Aula 12">
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="label-sm">Colore Alunno</span>
+                        <div class="color-row" id="student-color-picker"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="label-sm" for="field-notes">Note didattiche</label>
+                    <input type="text" id="field-notes" class="input-ctrl" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" placeholder="es. Compresenza, uso mappe, GLO...">
+                </div>
+
+                <div class="modal-foot sticky-foot" style="margin:0 -16px -14px;">
+                    <button type="button" id="btn-remove-slot" class="btn-action btn-del hidden" onclick="handleDeleteSlot()">Elimina</button>
+                    <div style="display:flex; gap:8px; margin-left:auto;">
+                        <button type="button" class="btn-action btn-cancel" onclick="closeEditModal()">Annulla</button>
+                        <button type="submit" class="btn-action btn-save">Salva</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODALE DI CONFERMA (azioni che cancellano dati) -->
+    <div id="confirm-modal" class="modal-overlay hidden no-print" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" onclick="if(event.target===this) hideLayer()">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3 id="confirm-title" style="margin:0; font-size:16px; font-weight:800;">Conferma</h3>
+            </div>
+            <div class="modal-content">
+                <p id="confirm-text" style="margin:0; font-size:15px; line-height:1.5;"></p>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn-action btn-cancel" onclick="hideLayer()">Annulla</button>
+                <button type="button" id="confirm-ok" class="btn-action btn-danger" onclick="runConfirm()">Conferma</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE IMPOSTAZIONI CATTEDRA -->
+    <div id="settings-modal" class="modal-overlay hidden no-print" role="dialog" aria-modal="true" onclick="if(event.target===this) closeSettings()">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3 style="margin:0; font-size:15px; font-weight:800;">Impostazioni Orario</h3>
+                <button type="button" class="btn-action btn-cancel" onclick="closeSettings()">Chiudi</button>
+            </div>
+
+            <div class="modal-content">
+                <div>
+                    <label class="label-sm" for="cfg-teacher">Nome Docente</label>
+                    <input type="text" id="cfg-teacher" class="input-ctrl" autocomplete="off" autocapitalize="words" enterkeyhint="done" placeholder="es. Prof.ssa Giulia Bianchi">
+                </div>
+
+                <div style="display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:10px;">
+                    <div>
+                        <label class="label-sm" for="cfg-hours">Ore Cattedra Settimanali</label>
+                        <input type="number" id="cfg-hours" class="input-ctrl" inputmode="numeric" min="1" max="40" value="18">
+                    </div>
+                    <div>
+                        <span class="label-sm">Settimana Scolastica</span>
+                        <label style="display:flex; align-items:center; gap:8px; min-height:48px; padding:6px 12px; border:1px solid var(--border-medium); border-radius:10px; font-size:14px; font-weight:600;">
+                            <input type="checkbox" id="cfg-saturday" style="width:22px; height:22px;">
+                            <span>Includi Sabato</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-foot">
+                <button type="button" class="btn-action btn-cancel" onclick="closeSettings()">Annulla</button>
+                <button type="button" class="btn-action btn-save" onclick="saveSettings()">Applica</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================================
+           SCRIPT ES5 ULTRA-COMPATIBILE (SAFARI iOS / ANDROID WEBVIEW)
+           ========================================================= */
+        var STORAGE_KEY = 'orario_sostegno_pro_mobile_v1';
+        var VIEW_KEY = 'orario_sostegno_pro_view_v1';
+        var memoryCache = {};
+
+        function safeGetItem(key) {
+            try {
+                if (window.localStorage) {
+                    return window.localStorage.getItem(key);
+                }
+            } catch (e) {}
+            return memoryCache[key] || null;
+        }
+
+        function safeSetItem(key, val) {
+            memoryCache[key] = val;
+            try {
+                if (window.localStorage) {
+                    window.localStorage.setItem(key, val);
+                }
+            } catch (e) {}
+        }
+
+        var DAYS = [
+            { id: 'LUN', name: 'Lunedì', short: 'Lun' },
+            { id: 'MAR', name: 'Martedì', short: 'Mar' },
+            { id: 'MER', name: 'Mercoledì', short: 'Mer' },
+            { id: 'GIO', name: 'Giovedì', short: 'Gio' },
+            { id: 'VEN', name: 'Venerdì', short: 'Ven' },
+            { id: 'SAB', name: 'Sabato', short: 'Sab' }
+        ];
+
+        var PALETTE = [
+            { id: 'indigo', bg: '#e0e7ff', text: '#3730a3', border: '#818cf8', dot: '#4f46e5' },
+            { id: 'teal', bg: '#ccfbf1', text: '#115e59', border: '#2dd4bf', dot: '#0d9488' },
+            { id: 'rose', bg: '#ffe4e6', text: '#9f1239', border: '#fb7185', dot: '#e11d48' },
+            { id: 'amber', bg: '#fef3c7', text: '#92400e', border: '#fbbf24', dot: '#d97706' },
+            { id: 'purple', bg: '#f3e8ff', text: '#6b21a8', border: '#c084fc', dot: '#9333ea' },
+            { id: 'sky', bg: '#e0f2fe', text: '#075985', border: '#38bdf8', dot: '#0284c7' }
+        ];
+
+        var SLOT_TYPES = {
+            SOSTEGNO_CLASSE: { label: 'Sostegno Classe', short: 'Classe', isSostegno: true, countsService: true },
+            SOSTEGNO_IND: { label: 'Sostegno Ind./Lab', short: 'Lab.', isSostegno: true, countsService: true },
+            DISPOSIZIONE: { label: 'Disposizione', short: 'Dispos.', isSostegno: false, countsService: true },
+            PROGRAMMAZIONE: { label: 'Prog./GLO', short: 'Prog.', isSostegno: false, countsService: true },
+            ORA_BUCA: { label: 'Ora Buca', short: 'Buca', isSostegno: false, countsService: false }
+        };
+
+        var state = {
+            teacherName: 'Prof.ssa Giulia Bianchi',
+            targetHours: 18,
+            includeSaturday: false,
+            highlightSostegno: false,
+            periods: [
+                { id: 1, label: '1ª Ora', start: '08:00', end: '09:00' },
+                { id: 2, label: '2ª Ora', start: '09:00', end: '10:00' },
+                { id: 3, label: '3ª Ora', start: '10:00', end: '11:00' },
+                { id: 4, label: '4ª Ora', start: '11:00', end: '12:00' },
+                { id: 5, label: '5ª Ora', start: '12:00', end: '13:00' },
+                { id: 6, label: '6ª Ora', start: '13:00', end: '14:00' }
+            ],
+            studentColors: {},
+            slots: {}
+        };
+
+        var selectedDayId = 'LUN';
+        var selectedModalType = 'SOSTEGNO_CLASSE';
+        var selectedModalColor = 'indigo';
+
+        function getSampleSchedule() {
+            return {
+                teacherName: 'Prof.ssa Giulia Bianchi',
+                targetHours: 18,
+                includeSaturday: false,
+                highlightSostegno: false,
+                periods: [
+                    { id: 1, label: '1ª Ora', start: '08:00', end: '09:00' },
+                    { id: 2, label: '2ª Ora', start: '09:00', end: '10:00' },
+                    { id: 3, label: '3ª Ora', start: '10:00', end: '11:00' },
+                    { id: 4, label: '4ª Ora', start: '11:00', end: '12:00' },
+                    { id: 5, label: '5ª Ora', start: '12:00', end: '13:00' },
+                    { id: 6, label: '6ª Ora', start: '13:00', end: '14:00' }
+                ],
+                studentColors: {
+                    'Marco R.': 'indigo',
+                    'Sofia L.': 'rose',
+                    'Luca M.': 'teal'
+                },
+                slots: {
+                    'LUN_1': { type: 'SOSTEGNO_CLASSE', subject: 'Matematica', className: '2ª B', studentName: 'Marco R.', room: 'Aula 12', notes: 'Esercizi guidati' },
+                    'LUN_2': { type: 'SOSTEGNO_CLASSE', subject: 'Scienze', className: '2ª B', studentName: 'Marco R.', room: 'Aula 12', notes: '' },
+                    'LUN_3': { type: 'ORA_BUCA', subject: 'Ora Buca', className: '', studentName: '', room: 'Sala Docenti', notes: '' },
+                    'LUN_4': { type: 'SOSTEGNO_CLASSE', subject: 'Italiano', className: '3ª A', studentName: 'Sofia L.', room: 'Aula 05', notes: 'Comprensione testo' },
+                    'LUN_5': { type: 'SOSTEGNO_IND', subject: 'Lab. Metodo Studio', className: '3ª A', studentName: 'Sofia L.', room: 'Aula H1', notes: 'Mappe concettuali' },
+
+                    'MAR_2': { type: 'SOSTEGNO_CLASSE', subject: 'Inglese', className: '2ª B', studentName: 'Marco R.', room: 'Aula 12', notes: '' },
+                    'MAR_3': { type: 'SOSTEGNO_IND', subject: 'Potenziamento Logico', className: '2ª B', studentName: 'Luca M.', room: 'Lab. Info', notes: '' },
+                    'MAR_4': { type: 'SOSTEGNO_CLASSE', subject: 'Storia', className: '2ª B', studentName: 'Marco R.', room: 'Aula 12', notes: '' },
+
+                    'MER_1': { type: 'SOSTEGNO_CLASSE', subject: 'Italiano', className: '2ª B', studentName: 'Marco R.', room: 'Aula 12', notes: '' },
+                    'MER_2': { type: 'SOSTEGNO_CLASSE', subject: 'Geografia', className: '2ª B', studentName: 'Marco R.', room: 'Aula 12', notes: '' },
+                    'MER_3': { type: 'DISPOSIZIONE', subject: 'Disposizione', className: '', studentName: '', room: 'Vicepresidenza', notes: 'Supplenze' },
+                    'MER_4': { type: 'SOSTEGNO_CLASSE', subject: 'Matematica', className: '3ª A', studentName: 'Sofia L.', room: 'Aula 05', notes: '' },
+
+                    'GIO_1': { type: 'SOSTEGNO_CLASSE', subject: 'Matematica', className: '3ª A', studentName: 'Sofia L.', room: 'Aula 05', notes: '' },
+                    'GIO_2': { type: 'SOSTEGNO_CLASSE', subject: 'Inglese', className: '3ª A', studentName: 'Sofia L.', room: 'Aula 05', notes: '' },
+                    'GIO_3': { type: 'PROGRAMMAZIONE', subject: 'Programmazione / GLO', className: '2ª B', studentName: 'Marco R.', room: 'Aula Riunioni', notes: 'Verifica PEI' },
+                    'GIO_4': { type: 'SOSTEGNO_IND', subject: 'Lab. Autonomia', className: '2ª B', studentName: 'Marco R.', room: 'Aula H1', notes: '' },
+                    'GIO_5': { type: 'SOSTEGNO_CLASSE', subject: 'Tecnologia', className: '2ª B', studentName: 'Luca M.', room: 'Aula Disegno', notes: '' },
+
+                    'VEN_2': { type: 'SOSTEGNO_CLASSE', subject: 'Italiano', className: '2ª B', studentName: 'Marco R.', room: 'Aula 12', notes: '' },
+                    'VEN_3': { type: 'SOSTEGNO_CLASSE', subject: 'Arte', className: '2ª B', studentName: 'Marco R.', room: 'Aula 12', notes: '' },
+                    'VEN_4': { type: 'SOSTEGNO_CLASSE', subject: 'Storia', className: '3ª A', studentName: 'Sofia L.', room: 'Aula 05', notes: '' }
+                }
+            };
+        }
+
+        function loadState() {
+            var raw = safeGetItem(STORAGE_KEY);
+            if (raw) {
+                try {
+                    var parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        state.teacherName = parsed.teacherName || state.teacherName;
+                        state.targetHours = Number(parsed.targetHours) || 18;
+                        state.includeSaturday = Boolean(parsed.includeSaturday);
+                        state.highlightSostegno = Boolean(parsed.highlightSostegno);
+                        if (parsed.periods && parsed.periods.length) {
+                            state.periods = parsed.periods;
+                        }
+                        state.studentColors = parsed.studentColors || {};
+                        state.slots = parsed.slots || {};
+                        return;
+                    }
+                } catch (e) {}
+            }
+            var sample = getSampleSchedule();
+            state = sample;
+            saveState();
+        }
+
+        function saveState() {
+            try {
+                safeSetItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        function esc(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function getColorByName(studentName) {
+            var cId = state.studentColors[studentName] || 'indigo';
+            for (var i = 0; i < PALETTE.length; i++) {
+                if (PALETTE[i].id === cId) return PALETTE[i];
+            }
+            return PALETTE[0];
+        }
+
+        function getVisibleDays() {
+            return state.includeSaturday ? DAYS : DAYS.slice(0, 5);
+        }
+
+        /* =========================================================
+           RENDERING INTERFACCIA COMPLETA
+           ========================================================= */
+        function renderApp() {
+            var visibleDays = getVisibleDays();
+            var validDay = false;
+            for (var i = 0; i < visibleDays.length; i++) {
+                if (visibleDays[i].id === selectedDayId) validDay = true;
+            }
+            if (!validDay) selectedDayId = visibleDays[0].id;
+
+            updateHighlightUI();
+            document.getElementById('subtitle-teacher').textContent = state.teacherName + ' • Cattedra ' + state.targetHours + 'h';
+
+            renderDayTabs(visibleDays);
+            renderMobileDayCard(visibleDays);
+            renderWeeklyGrid(visibleDays);
+            renderPEISummary(visibleDays);
+        }
+
+        function updateHighlightUI() {
+            var topBtn = document.getElementById('top-spotlight-btn');
+            var topTag = document.getElementById('top-spotlight-tag');
+            var fabBtn = document.getElementById('fab-spotlight-btn');
+            var fabLbl = document.getElementById('fab-spotlight-label');
+
+            if (state.highlightSostegno) {
+                document.body.className = 'highlight-sostegno';
+                topBtn.className = 'btn-spotlight active';
+                topTag.textContent = 'ON';
+                fabBtn.className = 'fab-spotlight active no-print';
+                fabLbl.textContent = 'Evidenzia Sostegno: ON';
+            } else {
+                document.body.className = '';
+                topBtn.className = 'btn-spotlight';
+                topTag.textContent = 'OFF';
+                fabBtn.className = 'fab-spotlight no-print';
+                fabLbl.textContent = 'Evidenzia Sostegno: OFF';
+            }
+        }
+
+        function toggleHighlightMode() {
+            state.highlightSostegno = !state.highlightSostegno;
+            saveState();
+            updateHighlightUI();
+            showToast(state.highlightSostegno ? 'Modalità Evidenzia Ore di Sostegno ATTIVA' : 'Visualizzazione standard ripristinata');
+        }
+
+        function renderDayTabs(visibleDays) {
+            var grid = document.getElementById('day-tabs-bar');
+            grid.className = 'day-tabs-grid' + (visibleDays.length === 6 ? ' has-sat' : '');
+            var html = '';
+            for (var d = 0; d < visibleDays.length; d++) {
+                var day = visibleDays[d];
+                var count = 0;
+                for (var p = 0; p < state.periods.length; p++) {
+                    var sl = state.slots[day.id + '_' + state.periods[p].id];
+                    if (sl && SLOT_TYPES[sl.type] && SLOT_TYPES[sl.type].countsService) {
+                        count++;
+                    }
+                }
+                var activeCls = (day.id === selectedDayId) ? ' active' : '';
+                html += '<button type="button" class="day-tab-btn' + activeCls + '" onclick="selectDay(\'' + day.id + '\')">' +
+                    '<span class="day-tab-label">' + day.short + '</span>' +
+                    '<span class="day-tab-hours">' + count + 'h</span>' +
+                '</button>';
+            }
+            grid.innerHTML = html;
+        }
+
+        function slotAttrs(dayId, periodId) {
+            return 'role="button" tabindex="0" onclick="openEditModal(\'' + dayId + '\',' + periodId + ')"';
+        }
+
+        function getNowInfo() {
+            var d = new Date();
+            var map = { 1: 'LUN', 2: 'MAR', 3: 'MER', 4: 'GIO', 5: 'VEN', 6: 'SAB' };
+            return { dayId: map[d.getDay()] || '', min: d.getHours() * 60 + d.getMinutes() };
+        }
+
+        function toMin(t) {
+            var a = String(t || '').split(':');
+            return (Number(a[0]) || 0) * 60 + (Number(a[1]) || 0);
+        }
+
+        function isNow(dayId, per, now) {
+            return now.dayId === dayId && now.min >= toMin(per.start) && now.min < toMin(per.end);
+        }
+
+        function studentChipHtml(name, extraCls) {
+            var cObj = getColorByName(name);
+            return '<span class="student-pei-chip' + (extraCls ? ' ' + extraCls : '') + '" style="background:' + cObj.bg + '; color:' + cObj.text + '; border-color:' + cObj.border + ';">' +
+                '<span class="dot-indicator" style="background:' + cObj.dot + ';"></span>' +
+                '<span class="chip-name">' + esc(name) + '</span>' +
+            '</span>';
+        }
+
+        function renderMobileDayCard(visibleDays) {
+            var currentDay = visibleDays[0];
+            for (var i = 0; i < visibleDays.length; i++) {
+                if (visibleDays[i].id === selectedDayId) {
+                    currentDay = visibleDays[i];
+                    break;
+                }
+            }
+
+            var serviceH = 0;
+            var sostegnoH = 0;
+            var html = '';
+            var now = getNowInfo();
+
+            for (var p = 0; p < state.periods.length; p++) {
+                var per = state.periods[p];
+                var key = currentDay.id + '_' + per.id;
+                var nowOn = isNow(currentDay.id, per, now);
+                var nowCls = nowOn ? ' is-now' : '';
+                var nowBadge = nowOn ? '<span class="now-badge">ADESSO</span>' : '';
+                var sl = state.slots[key];
+
+                if (!sl) {
+                    html += '<div class="m-slot-row is-empty is-empty-slot' + nowCls + '" ' + slotAttrs(currentDay.id, per.id) + '>' +
+                        '<div class="m-slot-time">' +
+                            '<strong class="m-slot-label">' + esc(per.label) + '</strong>' +
+                            '<span class="m-slot-end">' + esc(per.start) + '</span>' + nowBadge +
+                        '</div>' +
+                        '<div class="m-empty-text">' +
+                            '<span>Ora libera (' + esc(per.start) + ' - ' + esc(per.end) + ')</span>' +
+                            '<strong class="m-empty-plus">+</strong>' +
+                        '</div>' +
+                    '</div>';
+                    continue;
+                }
+
+                var meta = SLOT_TYPES[sl.type] || SLOT_TYPES.SOSTEGNO_CLASSE;
+                if (meta.countsService) serviceH++;
+                if (meta.isSostegno) sostegnoH++;
+
+                var roleCls = meta.isSostegno ? 'is-sostegno' : 'is-non-sostegno';
+                var studentHtml = sl.studentName ? studentChipHtml(sl.studentName) : '';
+
+                html += '<div class="m-slot-row slot-' + sl.type + ' ' + roleCls + nowCls + '" ' + slotAttrs(currentDay.id, per.id) + '>' +
+                    '<div class="m-slot-time">' +
+                        '<strong class="m-slot-label">' + esc(per.label) + '</strong>' +
+                        '<span class="m-slot-start">' + esc(per.start) + '</span>' +
+                        '<span class="m-slot-end">' + esc(per.end) + '</span>' + nowBadge +
+                    '</div>' +
+                    '<div class="m-slot-content">' +
+                        '<div class="m-slot-top">' +
+                            '<span class="type-tag tag-' + sl.type + '">' + meta.label + '</span>' +
+                            (sl.className ? '<span class="class-chip">' + esc(sl.className) + '</span>' : '') +
+                        '</div>' +
+                        '<div class="m-slot-subject">' + esc(sl.subject) + '</div>' +
+                        '<div class="m-slot-bottom">' +
+                            '<div>' + studentHtml + '</div>' +
+                            '<span class="m-slot-meta">' + esc(sl.room || '') + (sl.notes ? ' • ' + esc(sl.notes) : '') + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }
+
+            document.getElementById('current-day-name').textContent = currentDay.name;
+            document.getElementById('current-day-stats').textContent = serviceH + 'h servizio • ' + sostegnoH + 'h sostegno';
+            document.getElementById('mobile-day-slots').innerHTML = html;
+        }
+
+        function renderWeeklyGrid(visibleDays) {
+            var headHtml = '<th class="sticky-col">Orario</th>';
+            for (var d = 0; d < visibleDays.length; d++) {
+                headHtml += '<th>' + visibleDays[d].name + '</th>';
+            }
+            document.getElementById('week-table-head').innerHTML = headHtml;
+
+            var bodyHtml = '';
+            var now = getNowInfo();
+            for (var p = 0; p < state.periods.length; p++) {
+                var per = state.periods[p];
+                var row = '<td class="sticky-col w-time-cell">' +
+                    '<div class="w-time-label">' + esc(per.label) + '</div>' +
+                    '<div class="w-time-range">' + esc(per.start) + '</div>' +
+                    '<div class="w-time-range">' + esc(per.end) + '</div>' +
+                '</td>';
+
+                for (var j = 0; j < visibleDays.length; j++) {
+                    var day = visibleDays[j];
+                    var sl = state.slots[day.id + '_' + per.id];
+
+                    if (!sl) {
+                        row += '<td><button type="button" class="w-cell-empty is-empty-slot' + (isNow(day.id, per, now) ? ' is-now' : '') + '" onclick="openEditModal(\'' + day.id + '\',' + per.id + ')">+ Aggiungi</button></td>';
+                        continue;
+                    }
+
+                    var meta = SLOT_TYPES[sl.type] || SLOT_TYPES.SOSTEGNO_CLASSE;
+                    var roleCls = meta.isSostegno ? 'is-sostegno' : 'is-non-sostegno';
+                    var stTag = sl.studentName ? studentChipHtml(sl.studentName, 'w-student') : '';
+
+                    row += '<td><div class="w-cell-card slot-' + sl.type + ' ' + roleCls + (isNow(day.id, per, now) ? ' is-now' : '') + '" ' + slotAttrs(day.id, per.id) + '>' +
+                        '<div class="w-top">' +
+                            '<span class="w-tag tag-' + sl.type + '" title="' + meta.label + '">' + (meta.short || meta.label) + '</span>' +
+                            (sl.className ? '<span class="w-class">' + esc(sl.className) + '</span>' : '') +
+                        '</div>' +
+                        '<div>' +
+                            '<div class="w-subject">' + esc(sl.subject) + '</div>' +
+                            stTag +
+                        '</div>' +
+                        '<div class="w-room">' + esc(sl.room || '') + '</div>' +
+                    '</div></td>';
+                }
+                bodyHtml += '<tr>' + row + '</tr>';
+            }
+            document.getElementById('week-table-body').innerHTML = bodyHtml;
+        }
+
+        function renderPEISummary(visibleDays) {
+            var dayMap = {};
+            for (var d = 0; d < visibleDays.length; d++) dayMap[visibleDays[d].id] = true;
+
+            var totalService = 0;
+            var classeH = 0;
+            var indH = 0;
+            var altreH = 0;
+            var studentHours = {};
+            var studentNames = [];
+
+            var keys = Object.keys(state.slots);
+            for (var i = 0; i < keys.length; i++) {
+                var parts = keys[i].split('_');
+                if (!dayMap[parts[0]]) continue;
+                var sl = state.slots[keys[i]];
+                var meta = SLOT_TYPES[sl.type];
+                if (!meta) continue;
+
+                if (meta.countsService) totalService++;
+                if (sl.type === 'SOSTEGNO_CLASSE') classeH++;
+                else if (sl.type === 'SOSTEGNO_IND') indH++;
+                else if (meta.countsService) altreH++;
+
+                if (sl.studentName && sl.studentName.trim()) {
+                    var sName = sl.studentName.trim();
+                    if (studentNames.indexOf(sName) === -1) studentNames.push(sName);
+                    if (!studentHours[sName]) studentHours[sName] = 0;
+                    if (meta.isSostegno) studentHours[sName]++;
+                }
+            }
+
+            var target = Math.max(1, Number(state.targetHours) || 18);
+            var totalSostegno = classeH + indH;
+            var pct = Math.min(100, Math.round((totalService / target) * 100));
+
+            document.getElementById('kpi-total').textContent = totalService;
+            document.getElementById('kpi-target').textContent = target;
+            document.getElementById('kpi-sostegno').textContent = totalSostegno;
+            document.getElementById('kpi-classe').textContent = classeH;
+            document.getElementById('kpi-ind').textContent = indH;
+            document.getElementById('kpi-altre').textContent = altreH;
+            document.getElementById('kpi-progress').style.width = pct + '%';
+
+            var stText = document.getElementById('kpi-status-text');
+            if (totalService === target) {
+                stText.textContent = 'Cattedra completa (' + target + 'h)';
+                stText.style.color = '#0f766e';
+            } else if (totalService < target) {
+                stText.textContent = 'Mancano ' + (target - totalService) + 'h al completamento';
+                stText.style.color = '#64748b';
+            } else {
+                stText.textContent = '+' + (totalService - target) + 'h eccedenti';
+                stText.style.color = '#d97706';
+            }
+
+            studentNames.sort();
+            var listEl = document.getElementById('students-pei-summary');
+            var datalistEl = document.getElementById('datalist-students');
+            if (studentNames.length === 0) {
+                listEl.innerHTML = '<span style="font-size:12px; color:var(--text-muted);">Nessun alunno seguito inserito</span>';
+                datalistEl.innerHTML = '';
+            } else {
+                var chips = '<span style="font-size:12px; font-weight:700; color:var(--text-secondary);">Monte ore PEI:</span>';
+                var dl = '';
+                for (var s = 0; s < studentNames.length; s++) {
+                    var nm = studentNames[s];
+                    var cObj = getColorByName(nm);
+                    chips += '<span class="student-pei-chip" style="background:' + cObj.bg + '; color:' + cObj.text + '; border-color:' + cObj.border + ';">' +
+                        '<span class="dot-indicator" style="background:' + cObj.dot + ';"></span>' +
+                        '<span class="chip-name">' + esc(nm) + ': ' + (studentHours[nm] || 0) + 'h</span>' +
+                    '</span>';
+                    dl += '<option value="' + esc(nm) + '"></option>';
+                }
+                listEl.innerHTML = chips;
+                datalistEl.innerHTML = dl;
+            }
+
+            document.getElementById('print-doc-title').textContent = 'Orario Sostegno - ' + state.teacherName;
+            document.getElementById('print-doc-stats').textContent = 'Cattedra: ' + totalService + '/' + target + 'h • Sostegno: ' + totalSostegno + 'h (' + classeH + 'h classe, ' + indH + 'h lab)';
+        }
+
+        /* =========================================================
+           NAVIGAZIONE GIORNI & VISTE MOBILE
+           ========================================================= */
+        function selectDay(dayId) {
+            selectedDayId = dayId;
+            var visibleDays = getVisibleDays();
+            renderDayTabs(visibleDays);
+            renderMobileDayCard(visibleDays);
+        }
+
+        function navigateDay(step, noWrap) {
+            var visibleDays = getVisibleDays();
+            var idx = 0;
+            for (var i = 0; i < visibleDays.length; i++) {
+                if (visibleDays[i].id === selectedDayId) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (noWrap && (idx + step < 0 || idx + step >= visibleDays.length)) return;
+            var next = (idx + step + visibleDays.length) % visibleDays.length;
+            selectDay(visibleDays[next].id);
+        }
+
+        function switchMobileView(mode) {
+            var daySec = document.getElementById('mobile-day-view');
+            var weekSec = document.getElementById('weekly-table-view');
+            var btnDay = document.getElementById('btn-view-day');
+            var btnWeek = document.getElementById('btn-view-week');
+
+            safeSetItem(VIEW_KEY, mode === 'WEEK' ? 'WEEK' : 'DAY');
+
+            if (mode === 'DAY') {
+                daySec.classList.remove('hidden');
+                weekSec.classList.remove('show-on-mobile');
+                btnDay.classList.add('active');
+                btnWeek.classList.remove('active');
+            } else {
+                daySec.classList.add('hidden');
+                weekSec.classList.add('show-on-mobile');
+                btnWeek.classList.add('active');
+                btnDay.classList.remove('active');
+            }
+        }
+
+        /* =========================================================
+           MODIFICA CELLA ORARIA
+           ========================================================= */
+        function renderColorCircles() {
+            var box = document.getElementById('student-color-picker');
+            var html = '';
+            for (var i = 0; i < PALETTE.length; i++) {
+                var c = PALETTE[i];
+                var sel = (c.id === selectedModalColor) ? ' selected' : '';
+                html += '<button type="button" class="color-circle' + sel + '" style="background:' + c.dot + ';" onclick="pickStudentColor(\'' + c.id + '\')">' +
+                    (c.id === selectedModalColor ? '✓' : '') +
+                '</button>';
+            }
+            box.innerHTML = html;
+        }
+
+        function pickStudentColor(cId) {
+            selectedModalColor = cId;
+            renderColorCircles();
+        }
+
+        function syncExistingStudentColor() {
+            var name = document.getElementById('field-student').value.trim();
+            if (name && state.studentColors[name]) {
+                pickStudentColor(state.studentColors[name]);
+            }
+        }
+
+        function chooseSlotType(typeId) {
+            selectedModalType = typeId;
+            var cards = document.querySelectorAll('#type-selector-cards .type-radio-card');
+            for (var i = 0; i < cards.length; i++) {
+                if (cards[i].getAttribute('data-type') === typeId) {
+                    cards[i].classList.add('selected');
+                } else {
+                    cards[i].classList.remove('selected');
+                }
+            }
+            var subj = document.getElementById('field-subject');
+            if (typeId === 'DISPOSIZIONE' && !subj.value) subj.value = 'Disposizione';
+            if (typeId === 'PROGRAMMAZIONE' && !subj.value) subj.value = 'Programmazione / GLO';
+            if (typeId === 'ORA_BUCA' && !subj.value) subj.value = 'Ora Buca';
+        }
+
+        function openEditModal(dayId, periodId) {
+            var dayObj = DAYS[0];
+            for (var d = 0; d < DAYS.length; d++) {
+                if (DAYS[d].id === dayId) dayObj = DAYS[d];
+            }
+            var perObj = state.periods[0];
+            for (var p = 0; p < state.periods.length; p++) {
+                if (state.periods[p].id === periodId) perObj = state.periods[p];
+            }
+
+            document.getElementById('form-day-id').value = dayId;
+            document.getElementById('form-period-id').value = periodId;
+            document.getElementById('edit-modal-subheading').textContent = dayObj.name + ' • ' + perObj.label + ' (' + perObj.start + ' - ' + perObj.end + ')';
+
+            var existing = state.slots[dayId + '_' + periodId];
+            var delBtn = document.getElementById('btn-remove-slot');
+
+            if (existing) {
+                document.getElementById('edit-modal-heading').textContent = 'Modifica Fascia Oraria';
+                chooseSlotType(existing.type || 'SOSTEGNO_CLASSE');
+                document.getElementById('field-subject').value = existing.subject || '';
+                document.getElementById('field-class').value = existing.className || '';
+                document.getElementById('field-student').value = existing.studentName || '';
+                document.getElementById('field-room').value = existing.room || '';
+                document.getElementById('field-notes').value = existing.notes || '';
+                selectedModalColor = (existing.studentName && state.studentColors[existing.studentName]) ? state.studentColors[existing.studentName] : 'indigo';
+                delBtn.classList.remove('hidden');
+            } else {
+                document.getElementById('edit-modal-heading').textContent = 'Nuova Attività';
+                chooseSlotType('SOSTEGNO_CLASSE');
+                document.getElementById('field-subject').value = '';
+                document.getElementById('field-class').value = '';
+                document.getElementById('field-student').value = '';
+                document.getElementById('field-room').value = '';
+                document.getElementById('field-notes').value = '';
+                selectedModalColor = 'indigo';
+                delBtn.classList.add('hidden');
+            }
+
+            renderColorCircles();
+            showLayer('edit-modal');
+        }
+
+        function closeEditModal() {
+            hideLayer();
+        }
+
+        function handleSaveSlot(e) {
+            e.preventDefault();
+            var dayId = document.getElementById('form-day-id').value;
+            var periodId = document.getElementById('form-period-id').value;
+            var subject = document.getElementById('field-subject').value.trim();
+            if (!subject) return;
+
+            var studentName = document.getElementById('field-student').value.trim();
+            state.slots[dayId + '_' + periodId] = {
+                type: selectedModalType,
+                subject: subject,
+                className: document.getElementById('field-class').value.trim(),
+                studentName: studentName,
+                room: document.getElementById('field-room').value.trim(),
+                notes: document.getElementById('field-notes').value.trim()
+            };
+
+            if (studentName) {
+                state.studentColors[studentName] = selectedModalColor;
+            }
+
+            saveState();
+            closeEditModal();
+            renderApp();
+            showToast('Ora salvata nell\'orario');
+        }
+
+        function handleDeleteSlot() {
+            var dayId = document.getElementById('form-day-id').value;
+            var periodId = document.getElementById('form-period-id').value;
+            delete state.slots[dayId + '_' + periodId];
+            saveState();
+            closeEditModal();
+            renderApp();
+            showToast('Ora rimossa');
+        }
+
+        /* =========================================================
+           IMPOSTAZIONI, ESEMPIO, BACKUP JSON
+           ========================================================= */
+        function openSettings() {
+            document.getElementById('cfg-teacher').value = state.teacherName || '';
+            document.getElementById('cfg-hours').value = state.targetHours || 18;
+            document.getElementById('cfg-saturday').checked = Boolean(state.includeSaturday);
+            showLayer('settings-modal');
+        }
+
+        function closeSettings() {
+            hideLayer();
+        }
+
+        function saveSettings() {
+            state.teacherName = document.getElementById('cfg-teacher').value.trim() || 'Docente di Sostegno';
+            state.targetHours = Math.max(1, Number(document.getElementById('cfg-hours').value) || 18);
+            state.includeSaturday = document.getElementById('cfg-saturday').checked;
+            saveState();
+            closeSettings();
+            renderApp();
+            showToast('Impostazioni aggiornate');
+        }
+
+        function resetToSample() {
+            var keepHighlight = state.highlightSostegno;
+            state = getSampleSchedule();
+            state.highlightSostegno = keepHighlight;
+            saveState();
+            renderApp();
+            showToast('Orario di esempio da 18 ore caricato');
+        }
+
+        function clearAllSlots() {
+            state.slots = {};
+            state.studentColors = {};
+            saveState();
+            renderApp();
+            showToast('Tutte le ore sono state azzerate');
+        }
+
+        function exportBackup() {
+            try {
+                var dataStr = JSON.stringify(state, null, 2);
+                var blob = new Blob([dataStr], { type: 'application/json' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'orario-sostegno-pro.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Backup JSON esportato');
+            } catch (e) {
+                showToast('Esportazione non disponibile in questa WebView');
+            }
+        }
+
+        function importBackup(event) {
+            var file = event.target.files && event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var parsed = JSON.parse(e.target.result);
+                    if (parsed && parsed.slots) {
+                        state.teacherName = parsed.teacherName || state.teacherName;
+                        state.targetHours = Number(parsed.targetHours) || 18;
+                        state.includeSaturday = Boolean(parsed.includeSaturday);
+                        state.studentColors = parsed.studentColors || {};
+                        state.slots = parsed.slots || {};
+                        if (Array.isArray(parsed.periods) && parsed.periods.length) {
+                            state.periods = parsed.periods;
+                        }
+                        saveState();
+                        toggleToolbar(false);
+                        renderApp();
+                        showToast('Backup JSON importato');
+                    } else {
+                        showToast('Formato JSON non valido');
+                    }
+                } catch (err) {
+                    showToast('Errore durante la lettura del file');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function showToast(message) {
+            var el = document.getElementById('toast-msg');
+            el.textContent = message;
+            el.classList.remove('hidden');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(function() {
+                el.classList.add('hidden');
+            }, 2400);
+        }
+
+        /* =========================================================
+           ESPERIENZA MOBILE: finestre, tasto Indietro, menu, conferme, swipe
+           ========================================================= */
+        var openLayerId = null;
+        var pendingConfirm = null;
+
+        /* Le finestre (modali) occupano una voce della cronologia, così il
+           tasto/gesto "Indietro" di Android le chiude invece di uscire dalla pagina. */
+        function showLayer(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            if (openLayerId && openLayerId !== id) {
+                document.getElementById(openLayerId).classList.add('hidden');
+            } else if (!openLayerId) {
+                try { window.history.pushState({ layer: id }, ''); } catch (e) {}
+            }
+            openLayerId = id;
+            el.classList.remove('hidden');
+            document.documentElement.classList.add('modal-open');
+        }
+
+        function hideLayer(fromPopState) {
+            if (!openLayerId) return;
+            document.getElementById(openLayerId).classList.add('hidden');
+            openLayerId = null;
+            document.documentElement.classList.remove('modal-open');
+            if (fromPopState !== true) {
+                try {
+                    if (window.history.state && window.history.state.layer) window.history.back();
+                } catch (e) {}
+            }
+        }
+
+        function toggleToolbar(force) {
+            var tb = document.getElementById('toolbar');
+            var btn = document.getElementById('menu-btn');
+            if (!tb || !btn) return;
+            var open = (typeof force === 'boolean') ? force : !tb.classList.contains('open');
+            if (open) tb.classList.add('open'); else tb.classList.remove('open');
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+
+        function askConfirm(title, text, okLabel, onOk) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-text').textContent = text;
+            document.getElementById('confirm-ok').textContent = okLabel;
+            pendingConfirm = onOk;
+            showLayer('confirm-modal');
+        }
+
+        function runConfirm() {
+            var fn = pendingConfirm;
+            pendingConfirm = null;
+            hideLayer();
+            if (fn) fn();
+        }
+
+        function confirmSample() {
+            askConfirm('Caricare l\'esempio?',
+                'L\'orario attuale sarà sostituito dall\'esempio da 18 ore. Se vuoi conservarlo, esporta prima il backup JSON.',
+                'Carica esempio', resetToSample);
+        }
+
+        function confirmClear() {
+            askConfirm('Azzerare tutto?',
+                'Tutte le ore inserite e i colori degli alunni saranno cancellati. Se vuoi conservarli, esporta prima il backup JSON.',
+                'Azzera tutto', clearAllSlots);
+        }
+
+        function initMobileUX() {
+            /* Tasto Indietro di Android: chiude la finestra aperta */
+            window.addEventListener('popstate', function () {
+                if (openLayerId) hideLayer(true);
+            });
+
+            /* Menu strumenti: si chiude toccando fuori o dopo aver scelto un comando */
+            document.addEventListener('click', function (e) {
+                var tb = document.getElementById('toolbar');
+                if (!tb || !tb.classList.contains('open')) return;
+                var t = e.target;
+                if (!t || !t.closest) return;
+                if (t.closest('#menu-btn')) return;
+                if (!t.closest('#toolbar') || t.closest('button')) toggleToolbar(false);
+            });
+
+            /* Ora in corso: aggiorna ogni minuto e quando si torna sull'app */
+            function refreshNow() {
+                if (document.hidden) return;
+                var vd = getVisibleDays();
+                renderMobileDayCard(vd);
+                renderWeeklyGrid(vd);
+            }
+            setInterval(refreshNow, 60000);
+            document.addEventListener('visibilitychange', refreshNow);
+
+            /* Swipe orizzontale sulla vista giornaliera: giorno successivo / precedente */
+            var dayView = document.getElementById('mobile-day-view');
+            var sx = 0, sy = 0, st = 0, tracking = false;
+            dayView.addEventListener('touchstart', function (e) {
+                if (e.touches.length !== 1) { tracking = false; return; }
+                sx = e.touches[0].clientX;
+                sy = e.touches[0].clientY;
+                st = new Date().getTime();
+                tracking = true;
+            }, { passive: true });
+            dayView.addEventListener('touchcancel', function () { tracking = false; }, { passive: true });
+            dayView.addEventListener('touchend', function (e) {
+                if (!tracking) return;
+                tracking = false;
+                var t = e.changedTouches[0];
+                var dx = t.clientX - sx;
+                var dy = t.clientY - sy;
+                if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6 && (new Date().getTime() - st) < 700) {
+                    navigateDay(dx < 0 ? 1 : -1, true);
+                }
+            }, { passive: true });
+        }
+
+        /* =========================================================
+           AVVIO IMMEDIATO SENZA ATTESA DI EVENTI ESTERNI
+           ========================================================= */
+        try {
+            loadState();
+            var today = new Date().getDay();
+            var map = { 1: 'LUN', 2: 'MAR', 3: 'MER', 4: 'GIO', 5: 'VEN', 6: 'SAB' };
+            var todayCode = map[today] || 'LUN';
+            selectedDayId = (todayCode === 'SAB' && !state.includeSaturday) ? 'LUN' : todayCode;
+            renderApp();
+            if (safeGetItem(VIEW_KEY) === 'WEEK') switchMobileView('WEEK');
+            initMobileUX();
+        } catch (bootErr) {
+            /* Fallback silenzioso: il DOM statico resta comunque visibile */
+        }
+    </script>
+<script>
+        /* Funzionamento offline e installazione (solo se servita da https o localhost) */
+        if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js').catch(function () {});
+            });
+        }
+    </script>
+</body>
+</html>
